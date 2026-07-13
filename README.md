@@ -2,8 +2,8 @@
 
 A minimal, fully-parameterized AWS SAM template that deploys a single
 [Amazon Bedrock Guardrail](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html)
-with a realistic content policy (violence/hate/sexual/insults/misconduct
-filters), a topic policy (a denied topic with worked examples), a sensitive
+with a realistic content policy (violence/hate/sexual/insults/misconduct/
+prompt-attack filters), a topic policy (a denied topic with worked examples), a sensitive
 information policy (PII entities plus a custom regex), and a word policy
 (managed profanity list plus custom terms). One file, one resource, no
 click-ops - `sam build && sam deploy --guided` and you have a working
@@ -58,6 +58,18 @@ entities you need at the
 [Bedrock endpoints and quotas page](https://docs.aws.amazon.com/general/latest/gr/bedrock.html)
 before picking a region.
 
+## Validate the template
+
+```bash
+./tests/validate.sh
+```
+
+Lints `template.yaml` with `sam validate --lint` - catches YAML syntax
+errors, unresolvable intrinsic functions, and structural template mistakes
+before you spend time on a real deploy. This checks the template itself,
+not the deployed guardrail's behavior; for that, see
+[Verify the deployment](#verify-the-deployment) after `sam deploy`.
+
 ## Deploy
 
 ```bash
@@ -81,7 +93,7 @@ skip `--guided` on subsequent deploys).
 The stack usually finishes in under a minute - a guardrail is lightweight
 compared to resources like CloudFront distributions or ACM certificates.
 
-## Verify
+## Verify the deployment
 
 ```bash
 # Confirm the guardrail and its policies deployed as expected
@@ -135,8 +147,18 @@ template doesn't use.
 sam delete
 ```
 
-Removes the guardrail and its version. No other resources are created by
-this template, so there's nothing else to empty or detach first.
+Deletes the CloudFormation stack, but the guardrail and its version carry
+`DeletionPolicy: Retain` (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md))
+so they are **not** removed - this protects any caller still pinned to a
+numbered version from having it vanish out from under them. To actually
+delete the guardrail after confirming nothing depends on it:
+
+```bash
+# Find the GuardrailId from the CloudFormation stack outputs before
+# deleting the stack, or recover it afterward via:
+# aws bedrock list-guardrails --query 'guardrails[?name==`YourGuardrailName`]'
+aws bedrock delete-guardrail --guardrail-identifier <GuardrailId>
+```
 
 ## Security / repo hygiene
 
@@ -146,6 +168,19 @@ would hold your real stack name and region choice) is gitignored -
 sample policies (denied financial-advice topic, generic PII types, generic
 profanity/competitor-name blocks) are intentionally generic reference
 content, not tied to any specific product or application.
+
+## Consider for production
+
+This template intentionally leaves two things unset that you may want to
+add before using it beyond a reference/demo: resource **tags** (cost
+allocation, ownership, environment) via the Guardrail resource's `Tags`
+property, and a customer-managed **KMS key** (`KmsKeyArn`) if you need to
+control encryption of the sensitive-information policy's content yourself
+rather than relying on AWS-managed encryption. Neither is added here
+because both are organization-specific choices (tag taxonomy, key
+ownership/rotation policy) that a one-size-fits-all reference template
+shouldn't guess at - add them directly to the `ExampleGuardrail` resource's
+`Properties` block when you fork this for real use.
 
 ## Related
 

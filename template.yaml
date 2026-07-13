@@ -46,6 +46,8 @@ Resources:
 
   ExampleGuardrail:
     Type: AWS::Bedrock::Guardrail
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       Name: !Ref GuardrailName
       Description: !Ref GuardrailDescription
@@ -72,6 +74,12 @@ Resources:
           - Type: MISCONDUCT
             InputStrength: HIGH
             OutputStrength: HIGH
+          # PROMPT_ATTACK has no output-side equivalent (it classifies the
+          # user's input for injection/jailbreak attempts) - OutputStrength
+          # is required by the schema but has no effect here, so it's NONE.
+          - Type: PROMPT_ATTACK
+            InputStrength: HIGH
+            OutputStrength: NONE
 
       # Denied topics: free-text definitions the model uses to classify
       # intent. `Definition` is capped at 200 characters POST-YAML-FOLDING,
@@ -122,6 +130,8 @@ Resources:
   # DRAFT). This creates version "1" so the guardrail is immediately usable.
   ExampleGuardrailVersion:
     Type: AWS::Bedrock::GuardrailVersion
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       GuardrailIdentifier: !GetAtt ExampleGuardrail.GuardrailId
       Description: v1

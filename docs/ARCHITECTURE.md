@@ -24,9 +24,15 @@
                        └──────────────────────────────┘
 ```
 
-A guardrail is a single resource holding up to four independent policies.
-Each policy is optional and additive - you can ship just a content policy,
-just a topic policy, or all four together, as this template does. Policies
+A guardrail is a single resource holding up to five independent policies -
+content, topic, sensitive information, word, and contextual grounding. This
+template configures the first four; contextual grounding
+(`ContextualGroundingPolicyConfig`) is deliberately out of scope here since
+it scores model output against reference source/RAG context supplied at
+`ApplyGuardrail`/`InvokeModel` time, which doesn't fit a minimal,
+no-external-dependencies reference template. Each configured policy is
+optional and additive - you can ship just a content policy, just a topic
+policy, or all four together, as this template does. Policies
 are evaluated together on every `ApplyGuardrail` or guarded `InvokeModel`
 call; if any policy blocks, the whole call is blocked.
 
@@ -45,11 +51,24 @@ immediately usable end-to-end. If you evolve the policies later, add a
 second `GuardrailVersion` resource (with a distinct logical ID) rather than
 relying on `DRAFT` for anything beyond testing.
 
+Both `ExampleGuardrail` and `ExampleGuardrailVersion` carry
+`DeletionPolicy: Retain` and `UpdateReplacePolicy: Retain` for the same
+reason: a caller pinned to a numbered version has no way to know that
+version disappeared until their next `ApplyGuardrail`/`InvokeModel` call
+starts failing. Retain means `sam delete` (or a replacement-triggering
+parameter change) removes the CloudFormation stack but leaves the guardrail
+and version in place in the account - cleanup becomes a deliberate,
+separate step (see the README's Cleanup section) rather than a side effect
+of tearing down the stack.
+
 ## Policy design in this template
 
 - **Content policy** (`ContentPolicyConfig`): category-based filters -
   `VIOLENCE`, `HATE`, `SEXUAL`, `INSULTS`, `MISCONDUCT` - each with an
-  independent input/output strength (`NONE`, `LOW`, `MEDIUM`, `HIGH`).
+  independent input/output strength (`NONE`, `LOW`, `MEDIUM`, `HIGH`), plus
+  `PROMPT_ATTACK`, which only meaningfully supports `InputStrength` since it
+  classifies the user's prompt for injection/jailbreak attempts and has no
+  output-side equivalent (`OutputStrength` is set to `NONE`).
   `INSULTS` is set to `MEDIUM` here as a realistic default (insults are
   common in legitimate frustrated-customer input; blocking too
   aggressively creates false positives), while the rest default to `HIGH`.

@@ -13,6 +13,5 @@ version = 0.1
 stack_name = "aws-bedrock-guardrails-sam"
 region = "us-east-1"
 confirm_changeset = true
-capabilities = "CAPABILITY_IAM"
 resolve_s3 = true
 parameter_overrides = "GuardrailName=\"example-guardrail\" GuardrailDescription=\"Example guardrail demonstrating content, topic, PII, and word policies.\" BlockedInputMessage=\"Sorry, I can't help with that request.\" BlockedOutputMessage=\"Sorry, I can't provide that response.\""
