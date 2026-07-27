@@ -1,5 +1,8 @@
 # aws-bedrock-guardrails-sam
 
+> [!NOTE]
+> **Provenance:** Extracted from PrediktSales infrastructure work. Reviewed, tested, and versioned before public release.
+
 A minimal, fully-parameterized AWS SAM template that deploys a single
 [Amazon Bedrock Guardrail](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html)
 with a realistic content policy (violence/hate/sexual/insults/misconduct/
